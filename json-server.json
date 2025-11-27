@@ -1,0 +1,6 @@
+{
+  "port": 3001,
+  "host": "localhost",
+  "watch": true,
+  "delay": 0
+}
