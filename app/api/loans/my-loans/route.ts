@@ -4,8 +4,12 @@
  * 要件: 7.1, 7.3
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getActiveLoansForUser, getAllEquipment } from '@/lib/data-access';
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  createErrorResponse,
+  createInternalErrorResponse,
+} from "@/lib/api-helpers";
+import { getActiveLoansForUser, getAllEquipment } from "@/lib/data-access";
 
 /**
  * GET /api/loans/my-loans
@@ -17,18 +21,13 @@ import { getActiveLoansForUser, getAllEquipment } from '@/lib/data-access';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
+    const userId = searchParams.get("userId");
 
     if (!userId) {
-      return NextResponse.json(
-        {
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'ユーザーIDが必要です',
-          },
-        },
-        { status: 400 }
-      );
+      return createErrorResponse({
+        code: "VALIDATION_ERROR",
+        message: "ユーザーIDが必要です",
+      });
     }
 
     // 現在借りている備品を取得（要件: 7.1）
@@ -41,30 +40,21 @@ export async function GET(request: NextRequest) {
       allEquipment.map((eq) => [
         eq.id,
         { name: eq.name, category: eq.category },
-      ])
+      ]),
     );
 
     const enrichedLoans = activeLoans.map((loan) => {
       const equipment = equipmentMap.get(loan.equipmentId);
       return {
         ...loan,
-        equipmentName: equipment?.name || '不明',
-        equipmentCategory: equipment?.category || '不明',
+        equipmentName: equipment?.name || "不明",
+        equipmentCategory: equipment?.category || "不明",
       };
     });
 
     return NextResponse.json(enrichedLoans, { status: 200 });
   } catch (error) {
-    console.error('借用状況取得エラー:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: '借用状況の取得に失敗しました',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      },
-      { status: 500 }
-    );
+    console.error("借用状況取得エラー:", error);
+    return createInternalErrorResponse("借用状況の取得に失敗しました", error);
   }
 }

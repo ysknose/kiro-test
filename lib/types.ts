@@ -43,7 +43,7 @@ export interface Loan {
   /** 返却日時（未返却の場合null） */
   returnedAt: Date | null;
   /** ステータス */
-  status: 'active' | 'returned';
+  status: "active" | "returned";
 }
 
 /**
@@ -57,5 +57,29 @@ export interface User {
   /** メールアドレス */
   email: string;
   /** 役割 */
-  role: 'user' | 'admin';
+  role: "user" | "admin";
 }
+
+// ============================================
+// サービス層の共通型定義
+// ============================================
+
+/**
+ * サービスエラーレスポンス型
+ */
+export interface ServiceError {
+  /** エラーコード */
+  code: string;
+  /** エラーメッセージ */
+  message: string;
+  /** 詳細情報（オプション） */
+  details?: unknown;
+}
+
+/**
+ * サービス結果型
+ * 成功時はデータを、失敗時はエラーを返す
+ */
+export type ServiceResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: ServiceError };
