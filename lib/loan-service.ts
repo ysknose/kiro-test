@@ -4,33 +4,19 @@
  * 要件: 3.1, 3.2, 4.1, 4.3
  */
 
-import * as v from 'valibot';
-import type { Loan, Equipment } from './types';
-import { LoanSchema, type LoanInput } from './schemas';
+import * as v from "valibot";
 import {
   createLoan as createLoanData,
-  updateLoan as updateLoanData,
-  getLoanById,
-  getEquipmentById,
-  updateEquipment,
   getActiveLoansForUser,
-} from './data-access';
+  getEquipmentById,
+  getLoanById,
+  updateEquipment,
+  updateLoan as updateLoanData,
+} from "./data-access";
+import { type LoanInput, LoanSchema } from "./schemas";
+import type { Equipment, Loan, ServiceError, ServiceResult } from "./types";
 
-/**
- * エラーレスポンス型
- */
-export interface ServiceError {
-  code: string;
-  message: string;
-  details?: unknown;
-}
-
-/**
- * サービス結果型
- */
-export type ServiceResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: ServiceError };
+export type { ServiceError, ServiceResult };
 
 /**
  * 貸出可能性をチェック
@@ -49,7 +35,7 @@ export function canBorrowEquipment(equipment: Equipment): boolean {
  * @returns 作成された貸出記録またはエラー
  */
 export async function borrowEquipment(
-  input: LoanInput
+  input: LoanInput,
 ): Promise<ServiceResult<Loan>> {
   try {
     // バリデーション
@@ -58,8 +44,8 @@ export async function borrowEquipment(
       return {
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'バリデーションエラー',
+          code: "VALIDATION_ERROR",
+          message: "バリデーションエラー",
           details: validationResult.issues,
         },
       };
@@ -73,8 +59,8 @@ export async function borrowEquipment(
       return {
         success: false,
         error: {
-          code: 'NOT_FOUND',
-          message: '備品が見つかりません',
+          code: "NOT_FOUND",
+          message: "備品が見つかりません",
         },
       };
     }
@@ -84,8 +70,8 @@ export async function borrowEquipment(
       return {
         success: false,
         error: {
-          code: 'OUT_OF_STOCK',
-          message: '在庫切れです',
+          code: "OUT_OF_STOCK",
+          message: "在庫切れです",
           details: { availableQuantity: equipment.availableQuantity },
         },
       };
@@ -110,8 +96,8 @@ export async function borrowEquipment(
     return {
       success: false,
       error: {
-        code: 'INTERNAL_ERROR',
-        message: '貸出処理に失敗しました',
+        code: "INTERNAL_ERROR",
+        message: "貸出処理に失敗しました",
         details: error,
       },
     };
@@ -127,7 +113,7 @@ export async function borrowEquipment(
  */
 export async function returnEquipment(
   loanId: string,
-  userId: string
+  userId: string,
 ): Promise<ServiceResult<Loan>> {
   try {
     // 貸出記録が存在するか確認
@@ -136,8 +122,8 @@ export async function returnEquipment(
       return {
         success: false,
         error: {
-          code: 'NOT_FOUND',
-          message: '貸出記録が見つかりません',
+          code: "NOT_FOUND",
+          message: "貸出記録が見つかりません",
         },
       };
     }
@@ -147,20 +133,20 @@ export async function returnEquipment(
       return {
         success: false,
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'この備品を借りていません',
+          code: "UNAUTHORIZED",
+          message: "この備品を借りていません",
           details: { loanUserId: loan.userId, requestUserId: userId },
         },
       };
     }
 
     // すでに返却済みかチェック（要件: 4.3）
-    if (loan.status === 'returned') {
+    if (loan.status === "returned") {
       return {
         success: false,
         error: {
-          code: 'BUSINESS_RULE_VIOLATION',
-          message: 'すでに返却済みです',
+          code: "BUSINESS_RULE_VIOLATION",
+          message: "すでに返却済みです",
         },
       };
     }
@@ -171,8 +157,8 @@ export async function returnEquipment(
       return {
         success: false,
         error: {
-          code: 'NOT_FOUND',
-          message: '備品が見つかりません',
+          code: "NOT_FOUND",
+          message: "備品が見つかりません",
         },
       };
     }
@@ -180,15 +166,15 @@ export async function returnEquipment(
     // 貸出記録を更新（要件: 4.2）
     const updatedLoan = await updateLoanData(loanId, {
       returnedAt: new Date(),
-      status: 'returned',
+      status: "returned",
     });
 
     if (!updatedLoan) {
       return {
         success: false,
         error: {
-          code: 'NOT_FOUND',
-          message: '貸出記録が見つかりません',
+          code: "NOT_FOUND",
+          message: "貸出記録が見つかりません",
         },
       };
     }
@@ -206,8 +192,8 @@ export async function returnEquipment(
     return {
       success: false,
       error: {
-        code: 'INTERNAL_ERROR',
-        message: '返却処理に失敗しました',
+        code: "INTERNAL_ERROR",
+        message: "返却処理に失敗しました",
         details: error,
       },
     };
@@ -222,7 +208,7 @@ export async function returnEquipment(
  */
 export async function hasActiveLoan(
   userId: string,
-  equipmentId: string
+  equipmentId: string,
 ): Promise<boolean> {
   const activeLoans = await getActiveLoansForUser(userId);
   return activeLoans.some((loan) => loan.equipmentId === equipmentId);

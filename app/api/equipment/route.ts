@@ -5,14 +5,18 @@
  * 要件: 1.1, 2.1, 2.2, 2.3, 5.1
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  createErrorResponse,
+  createInternalErrorResponse,
+} from "@/lib/api-helpers";
 import {
   getAllEquipment,
   getEquipmentByCategory,
   searchEquipmentByName,
-} from '@/lib/data-access';
-import { createEquipment } from '@/lib/equipment-service';
-import type { EquipmentInput } from '@/lib/schemas';
+} from "@/lib/data-access";
+import { createEquipment } from "@/lib/equipment-service";
+import type { EquipmentInput } from "@/lib/schemas";
 
 /**
  * GET /api/equipment
@@ -26,10 +30,10 @@ import type { EquipmentInput } from '@/lib/schemas';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
-    const page = Number.parseInt(searchParams.get('page') || '1', 10);
-    const limit = Number.parseInt(searchParams.get('limit') || '20', 10);
+    const category = searchParams.get("category");
+    const search = searchParams.get("search");
+    const page = Number.parseInt(searchParams.get("page") || "1", 10);
+    const limit = Number.parseInt(searchParams.get("limit") || "20", 10);
 
     let equipment;
 
@@ -61,20 +65,11 @@ export async function GET(request: NextRequest) {
           totalPages,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error('備品取得エラー:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: '備品の取得に失敗しました',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      },
-      { status: 500 }
-    );
+    console.error("備品取得エラー:", error);
+    return createInternalErrorResponse("備品の取得に失敗しました", error);
   }
 }
 
@@ -98,27 +93,12 @@ export async function POST(request: NextRequest) {
     const result = await createEquipment(input);
 
     if (!result.success) {
-      // バリデーションエラー（要件: 1.2）
-      if (result.error.code === 'VALIDATION_ERROR') {
-        return NextResponse.json({ error: result.error }, { status: 400 });
-      }
-
-      // その他のエラー
-      return NextResponse.json({ error: result.error }, { status: 500 });
+      return createErrorResponse(result.error);
     }
 
     return NextResponse.json(result.data, { status: 201 });
   } catch (error) {
-    console.error('備品作成エラー:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: '備品の作成に失敗しました',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      },
-      { status: 500 }
-    );
+    console.error("備品作成エラー:", error);
+    return createInternalErrorResponse("備品の作成に失敗しました", error);
   }
 }

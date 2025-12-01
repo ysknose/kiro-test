@@ -5,17 +5,21 @@
  * 要件: 3.1, 6.1, 6.2, 6.3
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from "next/server";
 import {
+  createErrorResponse,
+  createInternalErrorResponse,
+} from "@/lib/api-helpers";
+import {
+  getAllEquipment,
   getAllLoans,
+  getAllUsers,
   getLoansByEquipmentId,
   getLoansByUserId,
-  getAllEquipment,
-  getAllUsers,
-} from '@/lib/data-access';
-import { borrowEquipment } from '@/lib/loan-service';
-import type { LoanInput } from '@/lib/schemas';
-import type { Loan } from '@/lib/types';
+} from "@/lib/data-access";
+import { borrowEquipment } from "@/lib/loan-service";
+import type { LoanInput } from "@/lib/schemas";
+import type { Loan } from "@/lib/types";
 
 /**
  * GET /api/loans
@@ -28,8 +32,8 @@ import type { Loan } from '@/lib/types';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const equipmentId = searchParams.get('equipmentId');
-    const userId = searchParams.get('userId');
+    const equipmentId = searchParams.get("equipmentId");
+    const userId = searchParams.get("userId");
 
     let loans: Loan[];
 
@@ -59,23 +63,14 @@ export async function GET(request: NextRequest) {
 
     const enrichedLoans = loans.map((loan) => ({
       ...loan,
-      equipmentName: equipmentMap.get(loan.equipmentId) || '不明',
-      userName: userMap.get(loan.userId) || '不明',
+      equipmentName: equipmentMap.get(loan.equipmentId) || "不明",
+      userName: userMap.get(loan.userId) || "不明",
     }));
 
     return NextResponse.json(enrichedLoans, { status: 200 });
   } catch (error) {
-    console.error('貸出履歴取得エラー:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: '貸出履歴の取得に失敗しました',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      },
-      { status: 500 }
-    );
+    console.error("貸出履歴取得エラー:", error);
+    return createInternalErrorResponse("貸出履歴の取得に失敗しました", error);
   }
 }
 
@@ -96,37 +91,12 @@ export async function POST(request: NextRequest) {
     const result = await borrowEquipment(input);
 
     if (!result.success) {
-      // バリデーションエラー
-      if (result.error.code === 'VALIDATION_ERROR') {
-        return NextResponse.json({ error: result.error }, { status: 400 });
-      }
-
-      // 備品が見つからない
-      if (result.error.code === 'NOT_FOUND') {
-        return NextResponse.json({ error: result.error }, { status: 404 });
-      }
-
-      // 在庫切れ（要件: 3.2）
-      if (result.error.code === 'OUT_OF_STOCK') {
-        return NextResponse.json({ error: result.error }, { status: 409 });
-      }
-
-      // その他のエラー
-      return NextResponse.json({ error: result.error }, { status: 500 });
+      return createErrorResponse(result.error);
     }
 
     return NextResponse.json(result.data, { status: 201 });
   } catch (error) {
-    console.error('貸出処理エラー:', error);
-    return NextResponse.json(
-      {
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: '貸出処理に失敗しました',
-          details: error instanceof Error ? error.message : String(error),
-        },
-      },
-      { status: 500 }
-    );
+    console.error("貸出処理エラー:", error);
+    return createInternalErrorResponse("貸出処理に失敗しました", error);
   }
 }
